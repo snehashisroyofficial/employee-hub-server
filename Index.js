@@ -27,10 +27,20 @@ async function run() {
     // await client.connect();
 
     const userCollection = client.db("EmployeeHub").collection("user");
+    const worksheetCollection = client
+      .db("EmployeeHub")
+      .collection("worksheet");
 
     app.post("/users", async (req, res) => {
       const data = req.body;
       console.log(data);
+
+      const useExist = await userCollection.findOne(data);
+
+      if (useExist) {
+        return res.send("user already exists in database");
+      }
+
       const result = await userCollection.insertOne(data);
       res.send(result);
     });
@@ -40,6 +50,15 @@ async function run() {
       console.log(data);
       const email = { email: data };
       const result = await userCollection.findOne(email);
+      res.send(result);
+    });
+
+    // work sheet
+
+    app.post("/work-sheet", async (req, res) => {
+      const query = req.body;
+      console.log(query);
+      const result = await worksheetCollection.insertOne(query);
       res.send(result);
     });
 
