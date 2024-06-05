@@ -1,5 +1,5 @@
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
 require("dotenv").config();
@@ -31,34 +31,62 @@ async function run() {
       .db("EmployeeHub")
       .collection("worksheet");
 
+    // post user to database
     app.post("/users", async (req, res) => {
       const data = req.body;
-      console.log(data);
-
-      const useExist = await userCollection.findOne(data);
-
+      const query = { email: data.email };
+      const useExist = await userCollection.findOne(query);
       if (useExist) {
+        console.log("user already exist");
         return res.send("user already exists in database");
       }
-
       const result = await userCollection.insertOne(data);
       res.send(result);
     });
 
+    // get the all users
+    app.get("/users", async (req, res) => {
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    // patch user verify status
+    app.patch("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const body = req.body;
+      console.log(body);
+      const query = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          isVerified: body.isVerified,
+        },
+      };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+    // get all the users based on email
     app.get("/users/:email", async (req, res) => {
       const data = req.params.email;
-      console.log(data);
+
       const email = { email: data };
       const result = await userCollection.findOne(email);
       res.send(result);
     });
 
     // work sheet
-
     app.post("/work-sheet", async (req, res) => {
       const query = req.body;
-      console.log(query);
       const result = await worksheetCollection.insertOne(query);
+      res.send(result);
+    });
+
+    // get all the work sheet data based on email
+    app.get("/work-sheet/:email", async (req, res) => {
+      const data = req.params.email;
+      const query = { email: data };
+      const result = await worksheetCollection.find(query).toArray();
+
       res.send(result);
     });
 
