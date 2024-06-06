@@ -30,6 +30,9 @@ async function run() {
     const worksheetCollection = client
       .db("EmployeeHub")
       .collection("worksheet");
+    const salaysheetCollection = client
+      .db("EmployeeHub")
+      .collection("salarysheet");
 
     // post user to database
     app.post("/users", async (req, res) => {
@@ -86,7 +89,22 @@ async function run() {
       const data = req.params.email;
       const query = { email: data };
       const result = await worksheetCollection.find(query).toArray();
+      res.send(result);
+    });
 
+    // salary sheet
+    app.post("/salary-sheet", async (req, res) => {
+      const query = req.body;
+      console.log(query);
+      const result = await salaysheetCollection.insertOne(query);
+      res.send(result);
+    });
+
+    app.get("/salary-sheet", async (req, res) => {
+      const data = req.body;
+      console.log(data.email);
+      const query = { email: data.email };
+      const result = await salaysheetCollection.find(query);
       res.send(result);
     });
 
