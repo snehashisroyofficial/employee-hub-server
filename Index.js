@@ -95,16 +95,16 @@ async function run() {
     // salary sheet
     app.post("/salary-sheet", async (req, res) => {
       const query = req.body;
-      console.log(query);
       const result = await salaysheetCollection.insertOne(query);
       res.send(result);
     });
 
-    app.get("/salary-sheet", async (req, res) => {
-      const data = req.body;
-      console.log(data.email);
-      const query = { email: data.email };
-      const result = await salaysheetCollection.find(query);
+    app.get("/salary-sheet/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { userId: id };
+      const result = await salaysheetCollection.find(query).toArray();
+      console.log(result);
       res.send(result);
     });
 
