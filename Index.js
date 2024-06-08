@@ -46,13 +46,63 @@ async function run() {
       res.send(result);
     });
 
-    // get the all users
+    // -------------------- EMPLOYEE API ------------------
+    // work sheet
+    app.post("/work-sheet", async (req, res) => {
+      const query = req.body;
+      const result = await worksheetCollection.insertOne(query);
+      res.send(result);
+    });
+
+    // get all the work sheet data based on email
+    app.get("/work-sheet/:email", async (req, res) => {
+      const data = req.params.email;
+      const query = { email: data };
+      const result = await worksheetCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/payment-history/:email", async (req, res) => {
+      const userEmail = req.params.email;
+      const query = { email: userEmail };
+      const result = await salaysheetCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // ---------------- HR API ---------------------
+
+    app.get("/work-sheet", async (req, res) => {
+      const result = await worksheetCollection.find().toArray();
+      res.send(result);
+    });
+
     app.get("/users", async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
-    // patch user verify status
+    app.get("/users/:email", async (req, res) => {
+      const data = req.params.email;
+
+      const email = { email: data };
+      const result = await userCollection.findOne(email);
+      res.send(result);
+    });
+
+    app.post("/salary-sheet", async (req, res) => {
+      const query = req.body;
+
+      const result = await salaysheetCollection.insertOne(query);
+      res.send(result);
+    });
+
+    app.get("/salary-sheet/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { userId: id };
+      const result = await salaysheetCollection.find(query).toArray();
+      res.send(result);
+    });
+
     app.patch("/users/:id", async (req, res) => {
       const id = req.params.id;
       const body = req.body;
@@ -66,50 +116,7 @@ async function run() {
       res.send(result);
     });
 
-    // get all the users based on email
-    app.get("/users/:email", async (req, res) => {
-      const data = req.params.email;
-
-      const email = { email: data };
-      const result = await userCollection.findOne(email);
-      res.send(result);
-    });
-
-    // work sheet
-    app.post("/work-sheet", async (req, res) => {
-      const query = req.body;
-      const result = await worksheetCollection.insertOne(query);
-      res.send(result);
-    });
-
-    app.get("/work-sheet", async (req, res) => {
-      const result = await worksheetCollection.find().toArray();
-      res.send(result);
-    });
-
-    // get all the work sheet data based on email
-    app.get("/work-sheet/:email", async (req, res) => {
-      const data = req.params.email;
-      const query = { email: data };
-      const result = await worksheetCollection.find(query).toArray();
-      res.send(result);
-    });
-
-    // salary sheet
-    app.post("/salary-sheet", async (req, res) => {
-      const query = req.body;
-      const result = await salaysheetCollection.insertOne(query);
-      res.send(result);
-    });
-
-    app.get("/salary-sheet/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { userId: id };
-      const result = await salaysheetCollection.find(query).toArray();
-      res.send(result);
-    });
-
-    // admin allemployee list api
+    // ---------------------- ADMIN API ---------------
 
     app.get("/verified-employee", async (req, res) => {
       const query = { isVerified: "true" };
