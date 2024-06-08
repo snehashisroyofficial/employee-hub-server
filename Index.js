@@ -40,7 +40,6 @@ async function run() {
       const query = { email: data.email };
       const useExist = await userCollection.findOne(query);
       if (useExist) {
-        console.log("user already exist");
         return res.send("user already exists in database");
       }
       const result = await userCollection.insertOne(data);
@@ -57,7 +56,6 @@ async function run() {
     app.patch("/users/:id", async (req, res) => {
       const id = req.params.id;
       const body = req.body;
-      console.log(body);
       const query = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
@@ -106,12 +104,41 @@ async function run() {
 
     app.get("/salary-sheet/:id", async (req, res) => {
       const id = req.params.id;
-      console.log(id);
       const query = { userId: id };
       const result = await salaysheetCollection.find(query).toArray();
-      console.log(result);
       res.send(result);
     });
+
+    // admin allemployee list api
+
+    app.get("/verified-employee", async (req, res) => {
+      const query = { isVerified: "true" };
+      const result = await userCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.patch("/update-account-status/:email", async (req, res) => {
+      const user = req.body;
+      const userEmail = { email: user.email };
+      console.log(user);
+      console.log(query);
+      const updateDoc = {
+        $set: {
+          role: "hr",
+        },
+      };
+
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+    //delete all data
+
+    // app.delete("/delete-all", async (req, res) => {
+    //   const result = await worksheetCollection.deleteMany();
+    //   const result2 = await salaysheetCollection.deleteMany();
+    //   res.send(" Data deleted Success");
+    // });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
