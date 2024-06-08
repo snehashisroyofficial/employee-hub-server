@@ -84,6 +84,11 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/work-sheet", async (req, res) => {
+      const result = await worksheetCollection.find().toArray();
+      res.send(result);
+    });
+
     // get all the work sheet data based on email
     app.get("/work-sheet/:email", async (req, res) => {
       const data = req.params.email;
