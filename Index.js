@@ -47,7 +47,9 @@ const verifyToken = async (req, res, next) => {
     if (error) {
       return res.status(403).send("forbidden acess");
     }
-    res.user = decode;
+    req.decode = decode;
+
+    console.log(decode);
     next();
   });
 };
@@ -76,6 +78,33 @@ async function run() {
       res.cookie("token", token, cookieOption).send("Token Sucessfully set");
     });
 
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decode.email;
+      console.log(email);
+
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === "admin";
+      if (!isAdmin) {
+        res.status(403).send({ message: "forbidden access" });
+      }
+
+      next();
+    };
+    const verifyHr = async (req, res, next) => {
+      const email = req.decode.email;
+      console.log(email);
+
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      const isHr = user?.role === "hr";
+      if (!isHr) {
+        res.status(403).send({ message: "forbidden access" });
+      }
+
+      next();
+    };
+
     // post user to database
     app.post("/users", async (req, res) => {
       const data = req.body;
@@ -88,9 +117,17 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/users/:email", verifyToken, async (req, res) => {
+      const data = req.params.email;
+
+      const email = { email: data };
+      const result = await userCollection.findOne(email);
+      res.send(result);
+    });
+
     // -------------------- EMPLOYEE API ------------------
     // work sheet
-    app.post("/work-sheet", async (req, res) => {
+    app.post("/work-sheet", verifyToken, async (req, res) => {
       const query = req.body;
       const result = await worksheetCollection.insertOne(query);
       res.send(result);
@@ -104,7 +141,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/payment-history/:email", async (req, res) => {
+    app.get("/payment-history/:email", verifyToken, async (req, res) => {
       const userEmail = req.params.email;
       const query = { email: userEmail };
       const result = await salaysheetCollection.find(query).toArray();
@@ -113,25 +150,17 @@ async function run() {
 
     // ---------------- HR API ---------------------
 
-    app.get("/work-sheet", async (req, res) => {
+    app.get("/work-sheet", verifyToken, async (req, res) => {
       const result = await worksheetCollection.find().toArray();
       res.send(result);
     });
 
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyToken, async (req, res) => {
       const result = await userCollection.find().toArray();
       res.send(result);
     });
 
-    app.get("/users/:email", async (req, res) => {
-      const data = req.params.email;
-
-      const email = { email: data };
-      const result = await userCollection.findOne(email);
-      res.send(result);
-    });
-
-    app.post("/salary-sheet", async (req, res) => {
+    app.post("/salary-sheet", verifyToken, async (req, res) => {
       const query = req.body;
       const result = await salaysheetCollection.insertOne(query);
       res.send(result);
@@ -144,7 +173,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/users/:id", async (req, res) => {
+    app.patch("/users/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const body = req.body;
       const query = { _id: new ObjectId(id) };
@@ -159,36 +188,51 @@ async function run() {
 
     // ---------------------- ADMIN API ---------------
 
-    app.get("/verified-employee", async (req, res) => {
-      const query = { isVerified: "true" };
-      const result = await userCollection.find(query).toArray();
-      res.send(result);
-    });
+    app.get(
+      "/verified-employee",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const query = { isVerified: "true" };
+        const result = await userCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
 
-    app.patch("/update-hr/:email", async (req, res) => {
-      const user = req.params.email;
-      const query = { email: user };
-      const updateDoc = {
-        $set: {
-          role: "hr",
-        },
-      };
+    app.patch(
+      "/update-hr/:email",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const user = req.params.email;
+        const query = { email: user };
+        const updateDoc = {
+          $set: {
+            role: "hr",
+          },
+        };
 
-      const result = await userCollection.updateOne(query, updateDoc);
-      res.send(result);
-    });
-    app.patch("/update-fired/:email", async (req, res) => {
-      const user = req.params.email;
-      const query = { email: user };
-      const updateDoc = {
-        $set: {
-          accountStatus: "false",
-        },
-      };
+        const result = await userCollection.updateOne(query, updateDoc);
+        res.send(result);
+      }
+    );
+    app.patch(
+      "/update-fired/:email",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const user = req.params.email;
+        const query = { email: user };
+        const updateDoc = {
+          $set: {
+            accountStatus: "false",
+          },
+        };
 
-      const result = await userCollection.updateOne(query, updateDoc);
-      res.send(result);
-    });
+        const result = await userCollection.updateOne(query, updateDoc);
+        res.send(result);
+      }
+    );
 
     //delete all data
 
