@@ -117,14 +117,24 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/update-account-status/:email", async (req, res) => {
-      const user = req.body;
-      const userEmail = { email: user.email };
-      console.log(user);
-      console.log(query);
+    app.patch("/update-hr/:email", async (req, res) => {
+      const user = req.params.email;
+      const query = { email: user };
       const updateDoc = {
         $set: {
           role: "hr",
+        },
+      };
+
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+    app.patch("/update-fired/:email", async (req, res) => {
+      const user = req.params.email;
+      const query = { email: user };
+      const updateDoc = {
+        $set: {
+          accountStatus: "false",
         },
       };
 
