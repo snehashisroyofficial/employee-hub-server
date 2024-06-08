@@ -2,13 +2,22 @@ const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
+const jwt = require("jsonwebtoken");
+const cookieParser = require("cookie-parser");
+
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 // middleware
 
-app.use(cors());
+app.use(
+  cors({
+    origin: ["http://localhost:5173"],
+    credentials: true,
+  })
+);
 app.use(express.json());
+app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_KEY}@cluster0.8kmx02i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -20,6 +29,28 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+
+//-----------------MIDDLE WARE -----------------
+const cookieOption = {
+  httpOnly: true,
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+  secure: process.env.NODE_ENV === "production" ? true : false,
+};
+
+const verifyToken = async (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).send("you're not authorized ");
+  }
+
+  jwt.verify(token, process.env.WEB_TOKEN_SECRET, (error, decode) => {
+    if (error) {
+      return res.status(403).send("forbidden acess");
+    }
+    res.user = decode;
+    next();
+  });
+};
 
 async function run() {
   try {
@@ -33,6 +64,17 @@ async function run() {
     const salaysheetCollection = client
       .db("EmployeeHub")
       .collection("salarysheet");
+
+    // ----------------- JWT TOKEN ---------------
+
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.WEB_TOKEN_SECRET, {
+        expiresIn: "1h",
+      });
+      console.log({ token });
+      res.cookie("token", token, cookieOption).send("Token Sucessfully set");
+    });
 
     // post user to database
     app.post("/users", async (req, res) => {
@@ -55,7 +97,7 @@ async function run() {
     });
 
     // get all the work sheet data based on email
-    app.get("/work-sheet/:email", async (req, res) => {
+    app.get("/work-sheet/:email", verifyToken, async (req, res) => {
       const data = req.params.email;
       const query = { email: data };
       const result = await worksheetCollection.find(query).toArray();
@@ -91,7 +133,6 @@ async function run() {
 
     app.post("/salary-sheet", async (req, res) => {
       const query = req.body;
-
       const result = await salaysheetCollection.insertOne(query);
       res.send(result);
     });
