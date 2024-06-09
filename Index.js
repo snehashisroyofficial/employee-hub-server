@@ -3,7 +3,6 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const app = express();
 const jwt = require("jsonwebtoken");
-const cookieParser = require("cookie-parser");
 
 require("dotenv").config();
 const port = process.env.PORT || 5000;
@@ -17,7 +16,6 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(cookieParser());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_KEY}@cluster0.8kmx02i.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -31,28 +29,6 @@ const client = new MongoClient(uri, {
 });
 
 //-----------------MIDDLE WARE -----------------
-const cookieOption = {
-  httpOnly: true,
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
-  secure: process.env.NODE_ENV === "production" ? true : false,
-};
-
-const verifyToken = async (req, res, next) => {
-  const token = req.cookies?.token;
-  if (!token) {
-    return res.status(401).send("you're not authorized ");
-  }
-
-  jwt.verify(token, process.env.WEB_TOKEN_SECRET, (error, decode) => {
-    if (error) {
-      return res.status(403).send("forbidden acess");
-    }
-    req.decode = decode;
-
-    console.log(decode);
-    next();
-  });
-};
 
 async function run() {
   try {
@@ -71,38 +47,31 @@ async function run() {
 
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-      const token = jwt.sign(user, process.env.WEB_TOKEN_SECRET, {
+      const token = await jwt.sign(user, process.env.WEB_TOKEN_SECRET, {
         expiresIn: "1h",
       });
       console.log({ token });
-      res.cookie("token", token, cookieOption).send("Token Sucessfully set");
+      res.send({ token });
     });
 
-    const verifyAdmin = async (req, res, next) => {
-      const email = req.decode.email;
-      console.log(email);
-
-      const query = { email: email };
-      const user = await userCollection.findOne(query);
-      const isAdmin = user?.role === "admin";
-      if (!isAdmin) {
-        res.status(403).send({ message: "forbidden access" });
+    const verifyToken = async (req, res, next) => {
+      const authHeader = req.headers.authorization;
+      console.log("auth header", authHeader);
+      if (!authHeader) {
+        return res.status(401).send("you're not authorized ");
       }
 
-      next();
-    };
-    const verifyHr = async (req, res, next) => {
-      const email = req.decode.email;
-      console.log(email);
+      const token = req.headers.authorization.split(" ")[1];
 
-      const query = { email: email };
-      const user = await userCollection.findOne(query);
-      const isHr = user?.role === "hr";
-      if (!isHr) {
-        res.status(403).send({ message: "forbidden access" });
-      }
+      jwt.verify(token, process.env.WEB_TOKEN_SECRET, (error, decoded) => {
+        if (error) {
+          return res.status(403).send("forbidden access");
+        }
+        req.decoded = decoded;
 
-      next();
+        console.log("this is decoded", decoded);
+        next();
+      });
     };
 
     // post user to database
@@ -117,7 +86,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/users/:email", verifyToken, async (req, res) => {
+    app.get("/users/:email", async (req, res) => {
       const data = req.params.email;
 
       const email = { email: data };
@@ -166,7 +135,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/salary-sheet/:id", async (req, res) => {
+    app.get("/salary-sheet/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { userId: id };
       const result = await salaysheetCollection.find(query).toArray();
@@ -188,51 +157,36 @@ async function run() {
 
     // ---------------------- ADMIN API ---------------
 
-    app.get(
-      "/verified-employee",
-      verifyToken,
-      verifyAdmin,
-      async (req, res) => {
-        const query = { isVerified: "true" };
-        const result = await userCollection.find(query).toArray();
-        res.send(result);
-      }
-    );
+    app.get("/verified-employee", verifyToken, async (req, res) => {
+      const query = { isVerified: "true" };
+      const result = await userCollection.find(query).toArray();
+      res.send(result);
+    });
 
-    app.patch(
-      "/update-hr/:email",
-      verifyToken,
-      verifyAdmin,
-      async (req, res) => {
-        const user = req.params.email;
-        const query = { email: user };
-        const updateDoc = {
-          $set: {
-            role: "hr",
-          },
-        };
+    app.patch("/update-hr/:email", verifyToken, async (req, res) => {
+      const user = req.params.email;
+      const query = { email: user };
+      const updateDoc = {
+        $set: {
+          role: "hr",
+        },
+      };
 
-        const result = await userCollection.updateOne(query, updateDoc);
-        res.send(result);
-      }
-    );
-    app.patch(
-      "/update-fired/:email",
-      verifyToken,
-      verifyAdmin,
-      async (req, res) => {
-        const user = req.params.email;
-        const query = { email: user };
-        const updateDoc = {
-          $set: {
-            accountStatus: "false",
-          },
-        };
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+    app.patch("/update-fired/:email", verifyToken, async (req, res) => {
+      const user = req.params.email;
+      const query = { email: user };
+      const updateDoc = {
+        $set: {
+          accountStatus: "false",
+        },
+      };
 
-        const result = await userCollection.updateOne(query, updateDoc);
-        res.send(result);
-      }
-    );
+      const result = await userCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
 
     //delete all data
 
