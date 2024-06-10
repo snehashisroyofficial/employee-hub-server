@@ -12,7 +12,11 @@ const port = process.env.PORT || 5000;
 
 app.use(
   cors({
-    origin: ["http://localhost:5173"],
+    origin: [
+      "http://localhost:5173",
+      "https://emloyeehub.web.app",
+      "http://192.168.1.107:5173",
+    ],
     credentials: true,
   })
 );
@@ -205,13 +209,6 @@ async function run() {
       const result = await contactUsCollection.find().toArray();
       res.send(result);
     });
-    //delete all data
-
-    // app.delete("/delete-all", async (req, res) => {
-    //   const result = await worksheetCollection.deleteMany();
-    //   const result2 = await salaysheetCollection.deleteMany();
-    //   res.send(" Data deleted Success");
-    // });
 
     //-------------STRIPE ---------------
 
@@ -231,10 +228,10 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
