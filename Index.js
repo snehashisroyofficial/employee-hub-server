@@ -43,6 +43,9 @@ async function run() {
     const salaysheetCollection = client
       .db("EmployeeHub")
       .collection("salarysheet");
+    const contactUsCollection = client
+      .db("EmployeeHub")
+      .collection("contactus");
 
     // ----------------- JWT TOKEN ---------------
 
@@ -92,6 +95,12 @@ async function run() {
 
       const email = { email: data };
       const result = await userCollection.findOne(email);
+      res.send(result);
+    });
+
+    app.post("/contact-us", async (req, res) => {
+      const query = req.body;
+      const result = await contactUsCollection.insertOne(query);
       res.send(result);
     });
 
@@ -192,6 +201,10 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/contact-us-all", async (req, res) => {
+      const result = await contactUsCollection.find().toArray();
+      res.send(result);
+    });
     //delete all data
 
     // app.delete("/delete-all", async (req, res) => {
